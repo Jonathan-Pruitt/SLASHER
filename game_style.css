@@ -1,0 +1,86 @@
+/*
+    Element Colors
+
+    #3F598C     mid-navy
+    #223A59     drk-navy
+    #6C9BD9     lgt-blue
+    #F2DB66     calm-yellow
+    #F28080     neutral-red
+    #e94625     vibrant-red
+    #03CEA4     mint-green
+    #8C6477     lght-purple (background)
+    #1E1C26     pageBG
+*/
+body {
+    background-color: #1E1C26;
+    color : green;
+    height: 90vh;
+    font-family: Consolas, monospace;
+}
+
+.centered {
+    text-align: center;
+    align-content: center;
+    width: 100%;
+}
+
+.header {
+    color : #e94625;
+    text-shadow: 0px 3px #F2DB66, -0px -3px #F2DB66, -3px 0px #F2DB66, 3px -0px #F2DB66;
+    text-align: center;    
+    font-size: 3em;
+    letter-spacing: 7px;
+}
+
+.header h1 {
+    margin: 0;
+}
+
+.w-400 {
+    max-width: 400px;
+}
+
+.w-800 {
+    max-width: 800px;
+}
+
+.wrapper {
+    display : flex;
+    grid-template-columns : repeat (2, 1fr);
+    gap : 10px;
+    grid-auto-rows: minmax(100px, auto);    
+    margin : 10px auto;
+    height : fit-content;
+}
+
+.COLORBACK {
+    background-color: aqua;
+    border: 3px solid #ffaaff;
+}
+
+.one {
+    grid-column: 1 / 2;
+    grid-row : 1;    
+    margin : 0;
+    font-size : 5em;
+    letter-spacing: .5rem;    
+}
+
+.two {
+    grid-column : 2 / 3;
+    grid-row : 1;
+    margin : 0;
+    font-size: 3em;
+}
+
+#cnvElem {
+    max-width: 800px; 
+    max-height: 600px; 
+    background-color: #8C6477;
+    border-radius: 10px;
+    border: 2px solid #F2DB66;
+}
+
+#game-div {
+    text-align : center;
+}
