@@ -18,6 +18,11 @@ body {
     font-family: Consolas, monospace;
 }
 
+img {
+    height: 100%;
+    width: 100%;
+}
+
 .centered {
     text-align: center;
     align-content: center;

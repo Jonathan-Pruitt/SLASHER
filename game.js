@@ -227,7 +227,7 @@ class Enemy {
         
         //CALCULATE DIST TO TARGET AND MOVE IF > 10 * MOD UNITS AWAY
         let distToPlayer = Distance(player.x, player.y, this.x, this.y)
-       if (distToPlayer > 60) {
+       if (distToPlayer > 30 * modifier) {
            //MOVE CODE
             let velX = Math.cos(this.angle * (Math.PI/180)) * this.velocity * modifier * reduction
             let velY = Math.sin(this.angle * (Math.PI/180)) * this.velocity * modifier * reduction
@@ -1003,6 +1003,7 @@ function Flash() {
 }//end method
 
 function PlayerAction(e) {
+
     let key = e.key.toLowerCase()
 
     if (key === "k" && (isGamePaused || gameOver)) {
@@ -1034,6 +1035,7 @@ function PlayerAction(e) {
 }//end method
 
 function EndPlayerAction(e) {
+
     if (rulesState === intro_slides.length + 1) {
         rulesState = 0
         return
