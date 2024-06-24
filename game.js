@@ -811,13 +811,6 @@ function UpdateAnimation() {
     
             DrawGrid()
             player.Move()        
-            enemyArray.forEach((foe) => {
-                if (foe != null) {
-                    foe.Draw()
-                    foe.Move()
-                    foe.KillCheck()
-                }//end if
-            })//end for
             breakerArray.forEach((wall) => {
                 if (wall != null) {
                     wall.Draw()        
@@ -828,6 +821,13 @@ function UpdateAnimation() {
                 pool.Draw()
                 pool.KillCheck()
             })
+            enemyArray.forEach((foe) => {
+                if (foe != null) {
+                    foe.Draw()
+                    foe.Move()
+                    foe.KillCheck()
+                }//end if
+            })//end for
             player.Draw()
             EdgeCheck()
             OffScreenCheck()

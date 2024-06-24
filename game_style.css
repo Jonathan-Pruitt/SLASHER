@@ -13,7 +13,7 @@
 */
 body {
     background-color: #1E1C26;
-    color : green;
+    color : #F2DB66;
     height: 90vh;
     font-family: Consolas, monospace;
 }
@@ -54,8 +54,8 @@ body {
 }
 
 .COLORBACK {
-    background-color: aqua;
-    border: 3px solid #ffaaff;
+    background-color: #8c6477;
+    border: 3px solid #f2db66;
 }
 
 .one {
