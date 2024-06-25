@@ -1,48 +1,106 @@
 //#region CLASSES
+class Instances {
+    constructor(startX, startY, identification, radius, imageBuffer) {
+        this.x = (startX * modifier);
+        this.y = (startY * modifier);
+        this.radius = radius * modifier;
+        this.id = identification;
+        this.staticBuffer = imageBuffer * modifier;
+    }//end constructor
 
-class Player {
-    //CONSTRUCTOR
+    Update = function (oldMod) {
+        if (oldMod > modifier) {
+            this.x = this.x * 0.5;
+            this.y = this.y * 0.5;
+            this.radius = this.radius * 0.5;
+            this.staticBuffer = this.staticBuffer * 0.5;
+        } else if (oldMod < modifier) {
+            this.x = this.x * 2;
+            this.y = this.y * 2;
+            this.radius = this.radius * 2;
+            this.staticBuffer = this.staticBuffer * 2;
+        }//end if
+    }//end method
+
+    KillCheck = function () {
+        if (player.trail.length - 1 < 0) {
+            return
+        }//end if
+    
+        //GRAB PLAYER X/Y
+        let px1 = player.tip().x
+        let py1 = player.tip().y
+    
+        //ITERATE THROUGH ALL TRAIL PIECES FOR COLLISION DETECTION
+        for (let i = 0; i < player.trail.length; i++) {
+            let px2 = player.trail[i].x
+            let py2 = player.trail[i].y
+            
+            let line = Distance(px1, py1, px2, py2)
+            let d1 = Distance(px1, py1, this.x + this.staticBuffer, this.y + this.staticBuffer)
+            let d2 = Distance(px2, py2, this.x + this.staticBuffer, this.y + this.staticBuffer)
+                        
+            if (player.velocity > 5 && (d1 + d2) >= line - (this.radius * .5) && (d1+d2) <= line + (this.radius * .5)) {
+                return true;
+            } //end if
+        }//end for
+        return false;
+    }//end method
+
+    Draw = function (image) {
+        let x = this.x
+        let y = this.y        
+
+        //DrawImage(image,x,y,25,25)
+        DrawImage(image, x, y, 25 * modifier, 25 * modifier);
+    }//end method
+
+}//end Instances class
+
+class Actors extends Instances {
+    constructor(startX, startY, identification, startAngle, radius) {
+        super(startX, startY, identification, radius, 0);
+        this.angle = startAngle;   
+        this.x += (12.5 * modifier);
+        this.y += (12.5 * modifier);
+        this.isDying = false;
+    }//end constructor
+
+    Turn = function (direction, speed) {
+        if (this.isDying) {return}
+        this.angle += direction * speed;
+    }//end turn
+
+}//end Actors class
+
+class Player extends Actors {
     constructor(startX, startY, startAngle) {
-        this.x = (startX * modifier) + (12.5 * modifier)
-        this.y = (startY * modifier) + (12.5 * modifier)
-        this.angle = startAngle
-        //this.radius = 25 * modifier
-        this.radius = 12.5 * modifier
-        this.charge = 0
-        this.isCharging = false
-        this.velocity = 0
-        this.zipColor = "#F2DB66"
-        this.fade = 250
-        this.tip = () => {
-            //let x = (this.x * modifier) + (Math.cos(this.angle * Math.PI / 180) * this.radius)
-            let x = (this.x) + (Math.cos(this.angle * Math.PI / 180) * this.radius)
-            //let y = (this.y * modifier) - (Math.sin(this.angle * Math.PI / 180) * this.radius)
-            let y = (this.y) - (Math.sin(this.angle * Math.PI / 180) * this.radius)
+        super(startX, startY, 99, startAngle, 12.5);
+        this.charge = 0;
+        this.isCharging = false;
+        this.velocity = 0;
+        this.zipColor = "#F2DB66";
+        this.fade = 250;
+        this.tip = () => {            
+            let x = (this.x) + (Math.cos(this.angle * Math.PI / 180) * this.radius);
+            let y = (this.y) - (Math.sin(this.angle * Math.PI / 180) * this.radius);
+            return {x : x, y : y};
+        }//end function
+        this.lFlare = () => {
+            let x = (this.x) + (Math.cos((this.angle + 150 - this.charge) * Math.PI / 180) * this.radius);
+            let y = (this.y) - (Math.sin((this.angle + 150 - this.charge) * Math.PI / 180) * this.radius);
+            return {x : x, y : y};
+        }//end function
+        this.rFlare = () => {
+            let x = this.x + (Math.cos((this.angle - 150 + this.charge) * Math.PI / 180) * this.radius);
+            let y = this.y - (Math.sin((this.angle - 150 + this.charge) * Math.PI / 180) * this.radius);
             return {x : x, y : y}
         }//end function
         this.launchPoint = {x : NaN, y : NaN}
         this.trail = []
         this.keyHeld = {key : "", isHeld : false}
-        this.offScreenTimer = 120
-        this.isDead = false
+        this.offScreenTimer = 60
     }//end constructor
-
-    Update = function (oldMod) {
-        if (oldMod > modifier) {
-            this.x = this.x * 0.5
-            this.y = this.y * 0.5
-            this.radius = this.radius * 0.5
-        } else if (oldMod < modifier) {
-            this.x = this.x * 2
-            this.y = this.y * 2
-            this.radius = this.radius * 2
-        }//end if
-    }//end method
-
-    Turn = function (direction) {
-        if (this.isDead) {return}
-        this.angle += direction
-    }//end turn
 
     Move = function () {
         let velX = Math.cos(this.angle * (Math.PI/180)) * this.velocity * modifier
@@ -51,15 +109,27 @@ class Player {
         this.x += velX
         this.y -= velY
 
-        Decelerate()
+        this.Decelerate()
+    }//end method
+
+    Decelerate = function () {
+
+        if (this.velocity > 0.05) {
+            this.velocity *= .5
+        } else {
+            this.velocity = 0
+            if (this.charge < 0) {
+                this.charge = Math.abs(this.charge + 2) < 2 ? 0 : this.charge + 2
+            }//end if
+        }//end if
     }//end method
 
     Charge = function () {
-        if (this.isDead) {return}
+        if (this.isDying) {return}
         this.charge += 0.2
         if (this.charge > 15) {
             this.charge = 15
-        }
+        }//end method
     }//end method
 
     DrawZipLine = function () {
@@ -69,8 +139,8 @@ class Player {
         for (let i = 0; i < this.trail.length; i++) {
             let x1 = this.trail[i].x
             let y1 = this.trail[i].y
-            let x2 = i + 1 == this.trail.length ? player.x : this.trail[i + 1].x
-            let y2 = i + 1 == this.trail.length ? player.y : this.trail[i + 1].y
+            let x2 = i + 1 == this.trail.length ? this.x : this.trail[i + 1].x
+            let y2 = i + 1 == this.trail.length ? this.y : this.trail[i + 1].y
 
             ctx.beginPath()
             ctx.moveTo(x1,y1)
@@ -96,8 +166,8 @@ class Player {
         for (let i = 0; i < this.trail.length; i++) {
             let x1 = this.trail[i].x
             let y1 = this.trail[i].y
-            let x2 = i + 1 == this.trail.length ? player.x : this.trail[i + 1].x
-            let y2 = i + 1 == this.trail.length ? player.y : this.trail[i + 1].y
+            let x2 = i + 1 == this.trail.length ? this.x : this.trail[i + 1].x
+            let y2 = i + 1 == this.trail.length ? this.y : this.trail[i + 1].y
 
             ctx.beginPath()
             ctx.moveTo(x1,y1)
@@ -128,28 +198,19 @@ class Player {
 
     Draw = function () {
         let x = this.x
-        //let x = this.x * modifier
         let y = this.y
-        //let y = this.y * modifier
-        let angle = this.angle
-        //let radius = this.radius * modifier
-        let radius = this.radius
-        let charge = this.charge * 1.5
-        let tip = {x : this.tip().x, y : this.tip().y}
-        let lFlare = {
-            x : x + (Math.cos((angle + 150 - charge) * Math.PI / 180) * radius),
-            y : y - (Math.sin((angle + 150 - charge) * Math.PI / 180) * radius)
-        }
-        let rFlare = {
-            x : x + (Math.cos((angle - 150 + charge) * Math.PI / 180) * radius),
-            y : y - (Math.sin((angle - 150 + charge) * Math.PI / 180) * radius)
-        }
-        //  angle * Math.PI / 180
+        let angle = this.angle;
+        let radius = this.radius;
+        let charge = this.charge * 1.5;
+        let tip = this.tip();
+        let lFlare = this.lFlare();
+        let rFlare = this.rFlare();
+
         if (this.charge != 0) {
             this.DrawZipLine()
         } else {
             this.FadeZipLine()
-        }
+        }//end if
 
         ctx.strokeStyle = "#F2DB66"
         ctx.fillStyle = "#F28080"
@@ -169,37 +230,21 @@ class Player {
         ctx.stroke()
 
     }//end draw
-}//end class
 
-class Enemy {
-    constructor (startX, startY, initAngle, identification) {
-        this.x = startX * modifier + (12.5 * modifier)
-        this.y = startY * modifier + (12.5 * modifier)
-        this.radius = 13 * modifier
-        this.velocity = 0.07
-        this.fill = "#03CEA4"
-        this.stroke = "#223A59"
-        this.fade = 255
-        this.fadeSpeed = 3
-        this.angle = initAngle
-        this.isDying = false
-        this.isAggro = false
-        this.id = identification
-        this.atkTimer = 0
+}//end Player class
+
+class Enemy extends Actors {
+    constructor(startX, startY, startAngle, identification) {
+        super(startX, startY, identification, startAngle, 12.5);
+        this.velocity = 0.07;
+        this.fill = "#03CEA4";
+        this.stroke = "#223A59";
+        this.fade = 255;
+        this.fadeSpeed = 3;
+        this.isAggro = false;
+        this.atkTimer = 0;
     }//end constructor
-
-    Update = function (oldMod) {
-        if (oldMod > modifier) {
-            this.x = this.x * 0.5
-            this.y = this.y * 0.5
-            this.radius = this.radius * 0.5
-        } else if (oldMod < modifier) {
-            this.x = this.x * 2
-            this.y = this.y * 2
-            this.radius = this.radius * 2
-        }//end if
-    }//end method
-
+    
     Move = function () {
         if (this.isDying) {return}
         
@@ -207,26 +252,24 @@ class Enemy {
         //                       watchedY  - watcherY , watchedX - watcherX
         let angleRad = Math.atan2(-player.y + this.y, player.x - this.x)
         let degree = angleRad * 180 / Math.PI
-        
-        //this.angle = degree will immediately turn enemy to face player
-        //this.angle = degree
-
         let theta = (this.angle - degree) % 360
+        let reduction = 1
+
         //CALCULATE TURN
        if (theta > 180 - 3) {
             this.Turn(2, this.velocity)
        }//end if
        if (theta < 180 + 3) {
             this.Turn(-2, this.velocity)
-       }//end if
+        }//end if
 
-       let reduction = 1
        if (Math.abs(theta) > 90) {
            reduction = .3
         }//end if
         
         //CALCULATE DIST TO TARGET AND MOVE IF > 10 * MOD UNITS AWAY
         let distToPlayer = Distance(player.x, player.y, this.x, this.y)
+
        if (distToPlayer > 30 * modifier) {
            //MOVE CODE
             let velX = Math.cos(this.angle * (Math.PI/180)) * this.velocity * modifier * reduction
@@ -235,15 +278,14 @@ class Enemy {
             this.x += velX
             this.y -= velY
             this.atkTimer = 0
+
         } else {
+
             if (!this.isAggro) {return}
 
             //ATTACK CODE
             this.Attack()
-
-            //CHECK IF ATTACK AVAILABLE
-            //ATTACK
-       }
+       }//end if
     }//end method
 
     Attack = function () {
@@ -259,7 +301,7 @@ class Enemy {
             console.log(this.atkTimer)
             if (Math.abs(player.x - exX) < 15 * modifier && Math.abs(player.y - exY) < 15 * modifier) {
                 console.log("player dead")
-                player.isDead = true
+                player.isDying = true
                 PlaySound(hit_water, 0.4)
             }//end if
         }
@@ -267,92 +309,61 @@ class Enemy {
             console.log(this.atkTimer)
             this.atkTimer = 0                
         }
-        this.DrawAttack(this.atkTimer, x, y, rad, angle)
+        //this.DrawAttack(this.atkTimer, x, y, rad, angle)
     }//end method
-
+    
     DrawAttack = function (timer, x, y, rad, angle) {
-        timer = timer > 34 ? 35 : timer
-        /*
-        let x = this.x
-        let y = this.y
-        let rad = this.radius
-        let angle = this.angle * (Math.PI / 180)
-        */
+        timer = timer > 34 ? 35 : timer;
 
-        let extension = timer > 34 ? 2 : 1
-        let exX = x + Math.cos(angle)*rad * extension
-        let exY = y - Math.sin(angle)*rad * extension
-        let stroke = this.stroke
-        let tempRed = stroke[1] + stroke[2]
-        let redVal = parseInt(tempRed) + (timer * 6)
-        redVal = redVal.toString(16)
-        let substring = stroke.substring(3)
-        let newCol = `#${redVal}${substring}`
+        let extension = timer > 34 ? 2 : 1;
+        let exX = x + Math.cos(angle)*rad * extension;
+        let exY = y - Math.sin(angle)*rad * extension;
+        let stroke = this.stroke;
+        let tempRed = stroke[1] + stroke[2];
+        let redVal = parseInt(tempRed) + (timer * 6);
+        redVal = redVal.toString(16);
+        let substring = stroke.substring(3);
+        let newCol = `#${redVal}${substring}`;
 
-        ctx.lineWidth = LINE_WIDTH * modifier * 2.5
-        ctx.strokeStyle = newCol
-        ctx.beginPath()
-        ctx.moveTo(this.x, this.y)        
+        ctx.lineWidth = LINE_WIDTH * modifier * 2.5;
+        ctx.strokeStyle = newCol;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
         
-        ctx.lineTo(exX, exY)
-        ctx.stroke()
-        ctx.lineWidth = LINE_WIDTH * modifier
+        ctx.lineTo(exX, exY);
+        ctx.stroke();
+        ctx.lineWidth = LINE_WIDTH * modifier;
 
     }//end method
-
-    Turn = function (direction, speed) {
-        this.angle += direction * speed
-    }//end turn
-
-    KillCheck = function () {
-        if (player.trail.length - 1 < 0) {
-            return
+    
+    HitCheck = function() {
+        let hit = this.KillCheck();
+        if (hit)  {
+            PlaySound(hit_enemy, .7);
+            player.velocity *= .7;
+            
+            this.isDying = true;
         }//end if
-    
-        //GRAB PLAYER X/Y
-        let px1 = player.tip().x
-        let py1 = player.tip().y
-    
-        //ITERATE THROUGH ALL TRAIL PIECES FOR COLLISION DETECTION
-        for (let i = 0; i < player.trail.length; i++) {
-            let px2 = player.trail[i].x
-            let py2 = player.trail[i].y
-            
-            let line = Distance(px1, py1, px2, py2)
-            let d1 = Distance(px1, py1, this.x, this.y)
-            let d2 = Distance(px2, py2, this.x, this.y)
-            
-            //if (player.velocity > 5 && (d1 + d2) >= line - (this.radius * modifier * .5) && (d1+d2) <= line + (this.radius * modifier * .5)) {
-            if (player.velocity > 5 && (d1 + d2) >= line - (this.radius * .5) && (d1+d2) <= line + (this.radius * .5)) {
-                PlaySound(hit_enemy, .7)                
-                this.isDying = true
-                player.velocity *= .7
-            } //end if
-        }//end for
     }//end method
 
     Die = function () {
-        //enemyArray[this.id] = null
         enemyArray = enemyArray.filter(foe => foe.id !== this.id)
     }//end method
-
+    
     Draw = function () {
         let x = this.x
-        //let x = this.x * modifier
         let y = this.y
-        //let y = this.y * modifier
         let radius = this.radius
-        //let radius = this.radius * modifier
         let angle = (this.angle * (Math.PI / 180))
         let fade = this.fade.toString(16)
         fade = fade.length < 2 ? `0${fade}` : fade        
-
+        
         let fadedFill = `${this.fill}${fade}`
         let fadedStroke = `${this.stroke}${fade}`
         ctx.fillStyle = fadedFill
         ctx.strokeStyle = fadedStroke
         ctx.lineWidth = LINE_WIDTH * modifier            
-
+        
         ctx.beginPath()
         ctx.arc(x, y, radius, angle, 2 * Math.PI + angle)
         ctx.fill()
@@ -364,10 +375,11 @@ class Enemy {
         ctx.lineTo(x,y)
         ctx.stroke()
         ctx.closePath()
-
+        
         ctx.lineWidth = LINE_WIDTH * modifier
-
-
+        
+        this.DrawAttack(this.atkTimer, x, y, radius, angle)
+        
         if (this.isDying) {
             this.fade -= this.fadeSpeed
             if (this.fade <= 0) {
@@ -377,52 +389,22 @@ class Enemy {
             }//end if
         }//end if
     }//end method
-}//end class
 
-class Breaker {
+}//end Enemy class
+
+class Breaker extends Instances {
     constructor (startX, startY, identification) {
-        this.x = (startX * modifier)
-        this.y = (startY * modifier)
-        this.id = identification
+        super(startX, startY, identification, 10, 12.5);
     }//end constructor
 
-    Update = function (oldMod) {
-        if (oldMod > modifier) {
-            this.x = this.x * 0.5
-            this.y = this.y * 0.5
-        } else if (oldMod < modifier) {
-            this.x = this.x * 2
-            this.y = this.y * 2
+    HitCheck = function() {
+        let hit = this.KillCheck();
+        if (hit)  {
+            player.x = ((this.x + (12.5 * modifier)) + player.x) / 2            
+            player.y = ((this.y + (12.5 * modifier)) + player.y) / 2
+            PlaySound(hit_brick, .5)
+            this.Die()
         }//end if
-    }//end method
-
-    KillCheck = function () {
-        if (player.trail.length - 1 < 0) {
-            return
-        }
-    
-        //GRAB PLAYER X/Y
-        let px1 = player.tip().x
-        let py1 = player.tip().y
-    
-        //ITERATE THROUGH ALL TRAIL PIECES FOR COLLISION DETECTION
-        for (let i = 0; i < player.trail.length; i++) {
-            let px2 = player.trail[i].x
-            let py2 = player.trail[i].y
-            
-            let line = Distance(px1, py1, px2, py2)
-            let d1 = Distance(px1, py1, this.x + (12.5 * modifier), this.y + (12.5 * modifier))
-            let d2 = Distance(px2, py2, this.x + (12.5 * modifier), this.y + (12.5 * modifier))
-            
-            if (player.velocity > 5 && (d1 + d2) >= line - (10 * modifier * .5) && (d1+d2) <= line + (10 * modifier * .5)) {
-                player.x = ((this.x + (12.5 * modifier)) + player.x) / 2
-                //player.x = this.x + (12.5 * modifier)
-                //player.y = this.y + (12.5 * modifier)
-                player.y = ((this.y + (12.5 * modifier)) + player.y) / 2
-                PlaySound(hit_brick, .5)
-                this.Die()
-            } //end if
-        }//end for
     }//end method
 
     Die = function () {
@@ -430,65 +412,25 @@ class Breaker {
         player.velocity = 1
     }//end method
 
-    Draw = function () {
-        let x = this.x
-        let y = this.y        
+}//end Breaker class
 
-        DrawImage(brick,x,y,25,25)
-    }//end method
-}//end class
-
-class Water {
-    constructor (startX, startY) {
-        this.x = (startX * modifier)
-        this.y = (startY * modifier)
+class Water extends Instances {
+    constructor (startX, startY, identification) {
+        super(startX, startY, identification, 3, 12.5);
     }//end constructor
 
-    Update = function (oldMod) {
-        if (oldMod > modifier) {
-            this.x = this.x * 0.5
-            this.y = this.y * 0.5
-        } else if (oldMod < modifier) {
-            this.x = this.x * 2
-            this.y = this.y * 2
+    HitCheck = function() {
+        let hit = this.KillCheck();
+        if (hit)  {
+            player.velocity = 0;
+            player.x = this.x + (12.5 * modifier);
+            player.y = this.y + (12.5 * modifier);
+            PlaySound(hit_water, 0.4);
+            player.isDying = true;
         }//end if
     }//end method
 
-    KillCheck = function () {
-        if (player.trail.length - 1 < 0) {
-            return
-        }//end if
-    
-        //GRAB PLAYER X/Y
-        let px1 = player.x
-        let py1 = player.y
-    
-        //ITERATE THROUGH ALL TRAIL PIECES FOR COLLISION DETECTION
-        for (let i = 0; i < player.trail.length; i++) {
-            let px2 = player.trail[i].x
-            let py2 = player.trail[i].y
-            
-            let line = Distance(px1, py1, px2, py2)
-            let d1 = Distance(px1, py1, this.x + (12.5 * modifier), this.y + (12.5 * modifier))
-            let d2 = Distance(px2, py2, this.x + (12.5 * modifier), this.y + (12.5 * modifier))
-            
-            if (player.velocity > 5 && (d1 + d2) >= line - (3 * modifier * .5) && (d1+d2) <= line + (3 * modifier * .5)) {
-                player.velocity = 0
-                player.x = this.x + (12.5 * modifier)
-                player.y = this.y + (12.5 * modifier)
-                PlaySound(hit_water, 0.4)
-                player.isDead = true
-            } //end if
-        }//end for
-    }//end method
-
-    Draw = function () {
-        let x = this.x
-        let y = this.y        
-
-        DrawImage(water,x,y,25,25)
-    }//end method
-}//end class
+}//end Water class
 
 //#endregion
 
@@ -496,7 +438,7 @@ class Water {
 document.body.addEventListener("keydown", function (event) {
     if ((event.keyCode === 32 || event.key === "ArrowDown") && event.target === document.body) {
         event.preventDefault();
-    }
+    }//end if
 }, false);
 
 //GRAB CANVAS ELEMENT FROM HTML DOC
@@ -514,7 +456,7 @@ const ctx = canvas.getContext("2d")
 const water = new Image(25,25)
 const brick = new Image(25,25)
 const paused = new Image(100, 75)
-const small = new Image()
+const tooSmallImage = new Image()
 const esc = new Image()
 const restart = new Image()
 const win = new Image()
@@ -523,7 +465,7 @@ const intro_slides = [new Image(), new Image(), new Image(), new Image(), new Im
 water.src = "resources/water_tile.svg"
 brick.src = "resources/brick_tile.svg"
 paused.src = "resources/paused.svg"
-small.src = "resources/small.svg"
+tooSmallImage.src = "resources/small.svg"
 esc.src = "resources/esc.svg"
 restart.src = "resources/restart.svg"
 win.src = "resources/win.svg"
@@ -555,7 +497,6 @@ const MIN_W = 400
 const MIN_H = 300
 const MAX_W = MIN_W * 2
 const MAX_H = MIN_H * 2
-//const FLASH_MAX_COLOR = "#6C9BD9"
 const FLASH_MAX_COLOR = "#F2DB66"
 const FLASH_ALPHAS = ["CC", "99", "66", "33", "00"]
 
@@ -581,9 +522,8 @@ let isFlashing
 let isGamePaused
 let gameOver
 let crashedTime
-
-
 let rulesState = 0
+
 function InitLoad() {
     let hasW400 = wrapper.classList.contains("w-400")
     gameOver = false
@@ -605,13 +545,13 @@ function InitLoad() {
         wrapper.classList.toggle("w-800")
     }//end if
     
-
     canvas.width = WIDTH
     canvas.height = HEIGHT
     if (rulesState < intro_slides.length) {
         clearInterval(init)
         //CHECK FOR KEYPRESS TO ADVANCE THROUGH 2 SLIDES.
-        DrawOptionsMenuItem(intro_slides[rulesState], 0, 0, canvas.width, canvas.height)
+        DrawImage(intro_slides[rulesState], 0, 0, canvas.width, canvas.height);
+        //DrawOptionsMenuItem(intro_slides[rulesState], 0, 0, canvas.width, canvas.height)
         console.log(rulesState)
     } else {
         LoadGame()
@@ -625,9 +565,6 @@ function InitLoad() {
     }//end if
     rulesState++
 }//end method
-
-// LOADS ALL GAME INFORMATION
-//LoadGame()
 
 function LoadGame() {
     let hasW400 = wrapper.classList.contains("w-400")
@@ -650,7 +587,6 @@ function LoadGame() {
         wrapper.classList.toggle("w-800")
     }//end if
     
-
     canvas.width = WIDTH
     canvas.height = HEIGHT
     
@@ -672,7 +608,7 @@ function LoadGame() {
     
     GenerateObjects()
     
-    //GAME HANDLING VARIABLES
+    //SET GAME HANDLING VALUES
     attempts = enemyArray.length + 1
     attemptsElement.innerText = `ATTEMPTS: ${attempts}`
     shotClock = 10 //seconds
@@ -716,23 +652,7 @@ function GenerateObjects() {
 }//end method
 
 function DrawImage(image, x, y, w, h) {
-    ctx.drawImage(image, x, y, w * modifier, h * modifier)
-}//end method
-
-function DrawOptionsMenuItem(image, x, y, w, h) {
-    ctx.drawImage(image, x, y, w, h)
-}//end method
-
-function DrawPaused() {
-    ctx.drawImage(paused, 0, HEIGHT * .25, WIDTH, HEIGHT * .75)
-}//end method
-
-function DrawSmall() {
-    ctx.drawImage(small, 0, HEIGHT * .75, WIDTH, HEIGHT * .25)
-}//end method
-
-function DrawESC() {
-    ctx.drawImage(esc, 0, HEIGHT * .75, WIDTH, HEIGHT * .25)
+    ctx.drawImage(image, x, y, w, h);
 }//end method
 
 function PlaySound(sfx, volume) {
@@ -751,17 +671,19 @@ function DrawGrid() {
         ctx.lineTo(i,HEIGHT)
         ctx.closePath()
         ctx.stroke()
-    }
+    }//end for
     for (let i = 0; i < HEIGHT; i += 25 * modifier) {
         ctx.beginPath()
         ctx.moveTo(0,i)
         ctx.lineTo(WIDTH,i)
         ctx.closePath()
         ctx.stroke()
-    }
+    }//end for
 }//end method
 
 function UpdateAnimation() {
+
+    //WINDOW RESIZE CHECK
     if (heldWinWidth != window.innerWidth || heldWinHeight != window.innerHeight) {        
         heldWinHeight = window.innerHeight;
         heldWinWidth = window.innerWidth;
@@ -770,7 +692,7 @@ function UpdateAnimation() {
         if (heldWinWidth > MAX_W + 30 && heldWinHeight > MAX_H + 10) {
             let prevMod = modifier
             modifier = 2
-            UpdateAllObjects(prevMod)
+            UpdateStep(prevMod)
             if (hasW400) {
                 wrapper.classList.toggle("w-400")
                 wrapper.classList.toggle("w-800")
@@ -782,7 +704,7 @@ function UpdateAnimation() {
             }//end if
             let prevMod = modifier
             modifier = 1        
-            UpdateAllObjects(prevMod)
+            UpdateStep(prevMod)
         }//end if
     
         WIDTH = MIN_W * modifier
@@ -792,11 +714,9 @@ function UpdateAnimation() {
         gameDiv.style.height = `${HEIGHT.toString()}px`
         canvas.width = WIDTH
         canvas.height = HEIGHT
-
-        if (heldWinHeight >= MIN_H && heldWinWidth >= MIN_W) {
-            isGamePaused = false
-        }//end if
     }//end if
+
+
     if (!gameOver) {
     
         ctx.clearRect(0,0,canvas.width, canvas.height)
@@ -808,66 +728,21 @@ function UpdateAnimation() {
         }//end if
     
         if (!isGamePaused) {
-    
-            DrawGrid()
-            player.Move()        
-            breakerArray.forEach((wall) => {
-                if (wall != null) {
-                    wall.Draw()        
-                    wall.KillCheck()
-                }
-            })
-            waterArray.forEach((pool) => {
-                pool.Draw()
-                pool.KillCheck()
-            })
-            enemyArray.forEach((foe) => {
-                if (foe != null) {
-                    foe.Draw()
-                    foe.Move()
-                    foe.KillCheck()
-                }//end if
-            })//end for
-            player.Draw()
-            EdgeCheck()
-            OffScreenCheck()
-        
-            if (player.keyHeld.isHeld === true) {
-                let rotate = false
-                if (player.keyHeld.key === "a") {
-                    rotate = +2
-                } else if (player.keyHeld.key === "d") {
-                    rotate = -2
-                }
-                if (rotate) {
-                    player.Turn(rotate)                        
-                } 
-            }
-            if (player.isCharging) {
-                player.Charge()
-            }//end if
-            if (isFlashing) {
-                Flash()
-                if (flashIndex == FLASH_ALPHAS.length) {
-                    isFlashing = false
-                    flashIndex = 0
-                }//end if
-            }//end if
-            if (player.isDead) {
-                crashedTime--
-            }//end method
+
+            Step();
+            DrawStep();
+
         } else {
             //GAME IS PAUSED
-            // PUT PAUSED GAME CODE HERE
             ctx.fillStyle = "#5C3447"
             ctx.rect(0,0,canvas.width, canvas.height)
             ctx.fill()        
-            DrawPaused()
-            DrawOptionsMenuItem(restart, 0, 0, canvas.width, HEIGHT * .25)
+            DrawImage(paused, 0, HEIGHT * .25, WIDTH, HEIGHT * .75);
+            DrawImage(restart, 0, 0, WIDTH, HEIGHT * .25);
             if (tooSmall) {
-                DrawSmall()
+                DrawImage(tooSmallImage, 0, HEIGHT * .75, WIDTH, HEIGHT * .25);
             } else {
-                DrawESC()
+                DrawImage(esc, 0, HEIGHT * .75, WIDTH, HEIGHT * .25);
             }//end if
         }//end else
         if (attempts !== 0 && !isGamePaused) {
@@ -882,8 +757,8 @@ function UpdateAnimation() {
         ctx.fillStyle = "#5C3447"
         ctx.rect(0,0,canvas.width, canvas.height)
         ctx.fill()
-        DrawOptionsMenuItem(lose, 0, HEIGHT * .25, canvas.width, HEIGHT * .75)
-        DrawOptionsMenuItem(restart, 0, 0, canvas.width, HEIGHT * .25)
+        DrawImage(lose, 0, HEIGHT * .25, canvas.width, HEIGHT * .75);
+        DrawImage(restart, 0, 0, canvas.width, HEIGHT * .25);
         attempts = 0
         attemptsElement.innerText = `ATTEMPTS: ${attempts}`
         shotClock = 0
@@ -893,8 +768,8 @@ function UpdateAnimation() {
         ctx.fillStyle = "#5C3447"
         ctx.rect(0,0,canvas.width, canvas.height)
         ctx.fill()
-        DrawOptionsMenuItem(win, 0, HEIGHT * .25, canvas.width, HEIGHT * .75)
-        DrawOptionsMenuItem(restart, 0, 0, canvas.width, HEIGHT * .25)
+        DrawImage(win, 0, HEIGHT * .25, canvas.width, HEIGHT * .75);
+        DrawImage(restart, 0, 0, canvas.width, HEIGHT * .25);
         attempts = 0
         attemptsElement.innerText = `ATTEMPTS: ${attempts}`
         shotClock = 0
@@ -919,12 +794,11 @@ function EdgeCheck() {
     if (playerX > WIDTH || playerX < 0) {
         player.trail.push({x : playerX, y : playerY})
         player.Bounce(!isHorizontalReflection)
-
-    }
+    }//end if
     if (playerY > HEIGHT || playerY < 0) {
         player.trail.push({x : playerX, y : playerY})
         player.Bounce(isHorizontalReflection)
-    }
+    }//end if
 }//end method
 
 function OffScreenCheck() {
@@ -935,48 +809,12 @@ function OffScreenCheck() {
         if (player.offScreenTimer <= 0) {
             player.x = player.launchPoint.x
             player.y = player.launchPoint.y
-            player.offScreenTimer = 120
+            player.offScreenTimer = 60
         }//end if
     }//end if
 }//end method
 
-function Decelerate() {
-
-    if (player.velocity > 0.05) {
-        player.velocity *= .5
-    } else {
-        player.velocity = 0
-        if (player.charge < 0) {
-            player.charge = Math.abs(player.charge + 2) < 2 ? 0 : player.charge + 2
-        }
-    }
-}//end method
-
-function KillCheck() {
-    if (player.trail.length - 1 < 0) {
-        return
-    }
-
-    //GRAB PLAYER X/Y
-    let px1 = player.tip().x
-    let py1 = player.tip().y
-
-    //ITERATE THROUGH ALL TRAIL PIECES FOR COLLISION DETECTION
-    for (let i = 0; i < player.trail.length; i++) {
-        let px2 = player.trail[i].x
-        let py2 = player.trail[i].y
-        
-        let line = Distance(px1, py1, px2, py2)
-        let d1 = Distance(px1, py1, enemy.x, enemy.y)
-        let d2 = Distance(px2, py2, enemy.x, enemy.y)
-        
-        if (player.velocity > 5 && (d1 + d2) >= line - (enemy.radius * modifier) && (d1+d2) <= line + (enemy.radius * modifier)) {
-            enemy.isDying = true
-        } //end if
-    }//end for
-}//end method
-
-function UpdateAllObjects(oldMod) {
+function UpdateStep(oldMod) {
     player.Update(oldMod)
     enemyArray.forEach((foe) => {
         foe.Update(oldMod)
@@ -1002,6 +840,68 @@ function Flash() {
     flashIndex++
 }//end method
 
+function DrawStep() {
+    DrawGrid()      
+    breakerArray.forEach((wall) => {
+        wall.Draw(brick)        
+    })
+    waterArray.forEach((pool) => {
+        pool.Draw(water)
+    })
+    enemyArray.forEach((foe) => {
+        foe.Draw()
+    })//end for
+    player.Draw()
+}//end method
+
+function Step() {
+    player.Move()     
+
+    breakerArray.forEach((wall) => {    
+        wall.HitCheck()
+    })
+
+    waterArray.forEach((pool) => {
+        pool.HitCheck()
+    })
+
+    enemyArray.forEach((foe) => {
+        foe.Move()
+        foe.HitCheck()
+    })//end for
+
+    EdgeCheck()
+    OffScreenCheck()
+
+    if (player.keyHeld.isHeld === true) {
+        let rotate = false
+
+        if (player.keyHeld.key === "a") {
+            rotate = +2
+        } else if (player.keyHeld.key === "d") {
+            rotate = -2
+        }//end if
+        if (rotate) {
+            player.Turn(rotate, 1)                        
+        }//end if
+    }//end if
+
+    if (player.isCharging) {
+        player.Charge()
+    }//end if
+
+    if (isFlashing) {
+        Flash()
+        if (flashIndex == FLASH_ALPHAS.length) {
+            isFlashing = false
+            flashIndex = 0
+        }//end if
+    }//end if
+    if (player.isDying) {
+        crashedTime--
+    }//end if
+}//end method
+
 function PlayerAction(e) {
 
     let key = e.key.toLowerCase()
@@ -1010,29 +910,38 @@ function PlayerAction(e) {
         LoadGame()
     }//end if
 
-    //COOLDOWN AFTER ATTACK
-    if (player.charge < 0) { return }
+    //COOLDOWN AFTER ATTACK AND CHECK FOR DEAD PLAYER
+    if (player.charge < 0 || player.isDying) { return }
 
+    switch(key) {
+        case "escape":
+            PauseGame();
+            break;
 
+        case "a":
+        case "arrowleft":
+            console.log("LEFT hit")
+            player.keyHeld.key = "a";
+            player.keyHeld.isHeld = true;
+            break;
 
-    if (key === "escape") {
-        PauseGame()
-    }    //end if
-    if (key === "a" || key === "arrowleft") {
-        player.keyHeld.key = "a"
-        player.keyHeld.isHeld = true
-    } else if (key === "d" || key === "arrowright") {
-        player.keyHeld.key = "d"
-        player.keyHeld.isHeld = true
-    }//end if
+        case "d":
+        case "arrowright":
+            player.keyHeld.key = "d";
+            player.keyHeld.isHeld = true;
+            break;
 
-    if (key === " " || key === "arrowdown" || key === "s") {  
-        player.launchPoint = {x : player.x, y : player.y}
-        player.isCharging = true
-        player.trail = []
-    }//end if
+        case " ":
+        case "arrowdown":
+        case "s":
+            player.launchPoint = {x : player.x, y : player.y};
+            player.isCharging = true;
+            player.trail = [];
+            break;
+    }//end switch
 
 }//end method
+
 
 function EndPlayerAction(e) {
 
@@ -1040,40 +949,46 @@ function EndPlayerAction(e) {
         rulesState = 0
         return
     }
-    //COOLDOWN AFTER ATTACK
-    if (player.charge < 0) { return }
+    //COOLDOWN AFTER ATTACK AND CHECK FOR DEAD PLAYER
+    if (player.charge < 0 || player.isDying) { return }
     
     let key = e.key.toLowerCase()
-    if (key === " " || key === "arrowdown") {        
-        player.velocity = 10 * player.charge
-        player.charge = -15
-        player.isCharging = false
-        player.fade = 250
-        player.trail = [{x: player.x , y : player.y}]
-        attempts--
-        isFlashing = true
-        PlaySound(shoot_sound, .1)
 
-        if (attempts <= 0) {
-            enemyArray.forEach((foe) => {
-                foe.isAggro = true
-                foe.velocity = 1.5
-                attempts = 0   
-                clearInterval(shotTimer)         
-            })
-        }//end if
-        attemptsElement.innerText = `ATTEMPTS: ${attempts}`
+    switch (key) {
+        case " ":
+        case "arrowdown":
+        case "s":
+            player.velocity = 10 * player.charge
+            player.charge = -15
+            player.isCharging = false
+            player.fade = 250
+            player.trail = [{x: player.x , y : player.y}]
+            isFlashing = true
+            PlaySound(shoot_sound, .1)
+            attempts--
 
-        if (shotClock < 5 && shotClock > 0) {
-            shotClock = 5
-            clearInterval(shotTimer)
-            shotTimer = setInterval(CountDown, 1000)
-            timeElement.innerText = shotClock + "s"
-        }//end if
-    }//end if
+            if (attempts <= 0) {
+                enemyArray.forEach((foe) => {
+                    foe.isAggro = true
+                    foe.velocity = 1.5
+                    attempts = 0   
+                    clearInterval(shotTimer)         
+                })//end for
+            }//end if
+            attemptsElement.innerText = `ATTEMPTS: ${attempts}`
+
+            if (shotClock < 5 && shotClock > 0) {
+                shotClock = 5
+                clearInterval(shotTimer)
+                shotTimer = setInterval(CountDown, 1000)
+                timeElement.innerText = shotClock + "s"
+            }//end if
+            break;
+    }//end switch
+    
     player.keyHeld.isHeld = false
     player.keyHeld.key = ""
-}
+}//end method
 
 //addEventListener("keydown", InitLoad)
 let init = setInterval(InitLoad, 250)
