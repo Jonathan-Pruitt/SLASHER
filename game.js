@@ -51,7 +51,6 @@ class Instances {
         let x = this.x
         let y = this.y        
 
-        //DrawImage(image,x,y,25,25)
         DrawImage(image, x, y, 25 * modifier, 25 * modifier);
     }//end method
 
@@ -298,18 +297,14 @@ class Enemy extends Actors {
         let exX = x + Math.cos(angle)*rad * 2
         let exY = y - Math.sin(angle)*rad * 2
         if (this.atkTimer == 35) {
-            console.log(this.atkTimer)
             if (Math.abs(player.x - exX) < 15 * modifier && Math.abs(player.y - exY) < 15 * modifier) {
-                console.log("player dead")
                 player.isDying = true
                 PlaySound(hit_water, 0.4)
             }//end if
         }
         if (this.atkTimer == 45) {
-            console.log(this.atkTimer)
             this.atkTimer = 0                
-        }
-        //this.DrawAttack(this.atkTimer, x, y, rad, angle)
+        }//end if
     }//end method
     
     DrawAttack = function (timer, x, y, rad, angle) {
@@ -537,7 +532,7 @@ function InitLoad() {
     modifier = heldWinWidth > MAX_W && heldWinHeight > MAX_H ? 2 : 1
     WIDTH = MIN_W * modifier
     HEIGHT = MIN_H * modifier
-    if (hasW400 && modifier === 2) {        /////REWORK THIS
+    if (hasW400 && modifier === 2) {        
         wrapper.classList.toggle("w-400")
         wrapper.classList.toggle("w-800")
     } else if (!hasW400 && modifier === 1) {
@@ -549,10 +544,7 @@ function InitLoad() {
     canvas.height = HEIGHT
     if (rulesState < intro_slides.length) {
         clearInterval(init)
-        //CHECK FOR KEYPRESS TO ADVANCE THROUGH 2 SLIDES.
         DrawImage(intro_slides[rulesState], 0, 0, canvas.width, canvas.height);
-        //DrawOptionsMenuItem(intro_slides[rulesState], 0, 0, canvas.width, canvas.height)
-        console.log(rulesState)
     } else {
         LoadGame()
         
@@ -579,7 +571,7 @@ function LoadGame() {
     modifier = heldWinWidth > MAX_W && heldWinHeight > MAX_H ? 2 : 1
     WIDTH = MIN_W * modifier
     HEIGHT = MIN_H * modifier
-    if (hasW400 && modifier === 2) {        /////REWORK THIS
+    if (hasW400 && modifier === 2) {        
         wrapper.classList.toggle("w-400")
         wrapper.classList.toggle("w-800")
     } else if (!hasW400 && modifier === 1) {
@@ -746,7 +738,6 @@ function UpdateAnimation() {
             }//end if
         }//end else
         if (attempts !== 0 && !isGamePaused) {
-            console.log("Not Yet")
             ctx.fillStyle = "#6C9BD944"
             ctx.rect(0, 0, canvas.width, canvas.height)
             ctx.fill()
@@ -920,7 +911,6 @@ function PlayerAction(e) {
 
         case "a":
         case "arrowleft":
-            console.log("LEFT hit")
             player.keyHeld.key = "a";
             player.keyHeld.isHeld = true;
             break;
@@ -990,7 +980,6 @@ function EndPlayerAction(e) {
     player.keyHeld.key = ""
 }//end method
 
-//addEventListener("keydown", InitLoad)
 let init = setInterval(InitLoad, 250)
 addEventListener("keydown", Select)
 
